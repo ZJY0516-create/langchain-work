@@ -1,34 +1,29 @@
-# Core dependencies
-fastapi==0.115.0
-uvicorn==0.32.0
-python-multipart==0.0.9
-pydantic==2.9.2
-python-dotenv==1.0.1
-PyPDF2==2.12.1
-aiofiles==24.1.0
-jinja2==3.1.4
-markupsafe==2.1.5
+# 核心框架
+streamlit
+fastapi
+uvicorn
+python-multipart
+pydantic
+python-dotenv
 
-# LangChain
-langchain==0.3.0
-langchain-core==0.3.0
-langchain-openai==0.1.14
-langchain-community==0.3.0
-langchain-classic==0.1.0
-langserve==0.2.0
-sse-starlette==2.1.3
+# LangChain 相关
+langchain
+langchain-core
+langchain-openai
+langchain-community
 
-# API
-openai==0.28.0
-requests==2.32.3
+# PDF/文件处理
+PyPDF2
+aiofiles
 
-# Vector store
-numpy==2.0.1
-scipy==1.14.1
+# 模板/网络
+jinja2
+markupsafe
+requests
 
-# Streamlit
-streamlit==1.57.0
+# OpenAI
+openai
 
-# Development
-pytest==8.3.3
-pytest-asyncio==0.24.0
+# 数值计算（可选，用到才留）
+numpy
+scipy
