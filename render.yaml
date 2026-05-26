@@ -1,0 +1,22 @@
+services:
+  - type: web
+    name: wenlv-chatbot
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn server_langserve:app --host 0.0.0.0 --port $PORT --workers 4
+    envVars:
+      - key: DEESEEK_API_KEY
+        sync: false
+      - key: DEESEEK_BASE_URL
+        value: https://api.deepseek.com/v1
+      - key: DEESEEK_MODEL
+        value: deepseek-chat
+      - key: TEMPERATURE
+        value: "0.7"
+      - key: MAX_TOKENS
+        value: "4096"
+    disk:
+      name: data
+      mountPath: /app/backend
+      sizeGB: 1

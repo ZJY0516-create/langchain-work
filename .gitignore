@@ -1,0 +1,58 @@
+# Virtual environment
+venv/
+new_venv/
+.env
+.env.local
+.env.*.local
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+dist/
+build/
+*.egg-info/
+
+# Logs
+logs/
+*.log
+
+# Uploads
+uploads/
+backend/uploads/
+
+# Summaries
+summaries/
+backend/summaries/
+
+# Knowledge base
+knowledge_base/
+backend/knowledge_base/documents.json
+backend/knowledge_base/metadata.json
+
+# Media
+media/
+
+# Node modules (if using npm for frontend)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Streamlit
+.streamlit/secrets.toml
+.streamlit/config.toml

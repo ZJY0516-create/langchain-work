@@ -1,0 +1,26 @@
+app = "wenlv-chatbot"
+
+primary_region = "hkg"
+
+[http_service]
+  internal_port = 8000
+  force_https = true
+  auto_stop_machines = true
+  auto_start_machines = true
+  min_machines_running = 0
+  max_machines_running = 1
+
+[env]
+  DEESEEK_API_KEY = "your-api-key"
+  DEESEEK_BASE_URL = "https://api.deepseek.com/v1"
+  DEESEEK_MODEL = "deepseek-chat"
+  TEMPERATURE = "0.7"
+  MAX_TOKENS = "4096"
+
+[[mounts]]
+  source="uploads"
+  destination="/app/backend/uploads"
+
+[[mounts]]
+  source="summaries"
+  destination="/app/backend/summaries"

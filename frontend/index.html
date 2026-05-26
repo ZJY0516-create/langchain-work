@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文旅智答 - 面向文旅场景的 LangChain 智能对话助手</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    :root {
+      --primary-color: #4A90E2;
+      --primary-light: #7AB8F3;
+      --primary-dark: #2C75C8;
+      --secondary-color: #5CB85C;
+      --accent-color: #F0AD4E;
+      --bg-gradient-start: #F5F9FF;
+      --bg-gradient-end: #E8F4FD;
+      --card-bg: rgba(255, 255, 255, 0.85);
+      --text-primary: #2C3E50;
+      --text-secondary: #7F8C8D;
+      --border-color: rgba(74, 144, 226, 0.2);
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    body {
+      font-family: 'PingFang SC', 'Microsoft YaHei', -apple-system, sans-serif;
+      background: linear-gradient(135deg, var(--bg-gradient-start) 0%, var(--bg-gradient-end) 100%);
+      min-height: 100vh;
+      color: var(--text-primary);
+    }
+
+    .nav-container {
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(10px);
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow);
+    }
+
+    .nav-content {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      font-size: 1.35rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 0.5rem;
+    }
+
+    .nav-link {
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 0.6rem 1.2rem;
+      border-radius: 0.5rem;
+      transition: all 0.3s ease;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      font-size: 0.95rem;
+    }
+
+    .nav-link:hover, .nav-link.active {
+      color: var(--primary-color);
+      background: rgba(74, 144, 226, 0.1);
+    }
+
+    .nav-link.active {
+      color: white;
+      background: var(--primary-color);
+    }
+
+    .page-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 2rem;
+    }
+
+    .page {
+      display: none;
+      animation: fadeIn 0.4s ease;
+    }
+
+    .page.active {
+      display: block;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    .page-header {
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    .page-title {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .page-subtitle {
+      color: var(--text-secondary);
+      font-size: 1rem;
+    }
+
+    .hero-section {
+      padding: 4rem 2rem 2rem;
+      text-align: center;
+    }
+
+    .hero-image {
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(92, 184, 92, 0.1) 100%);
+      border: 2px dashed var(--border-color);
+      border-radius: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 3rem;
+      max-width: 800px;
+      margin: 0 auto 2rem;
+      min-height: 180px;
+    }
+
+    .hero-image span {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+    }
+
+    .hero-title {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 50%, var(--accent-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto 2rem;
+    }
+
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+      color: white;
+      padding: 0.85rem 2rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+      font-size: 1rem;
+      box-shadow: 0 4px 15px rgba(74, 144, 226, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 25px rgba(74, 144, 226, 0.4);
+    }
+
+    .btn-secondary {
+      background: white;
+      color: var(--primary-color);
+      padding: 0.85rem 2rem;
+      border-radius: 0.75rem;
+      text-decoration: none;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      border: 2px solid var(--primary-color);
+      cursor: pointer;
+      font-size: 1rem;
+    }
+
+    .btn-secondary:hover {
+      background: var(--primary-color);
+      color: white;
+    }
+
+    .feature-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+      max-width: 1200px;
+      margin: 3rem auto;
+      padding: 0 2rem;
+    }
+
+    .feature-card {
+      background: var(--card-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      padding: 2rem;
+      transition: all 0.3s ease;
+      cursor: pointer;
+      box-shadow: var(--shadow);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 30px rgba(74, 144, 226, 0.15);
+      border-color: var(--primary-color);
+    }
+
+    .feature-icon {
+      width: 4rem;
+      height: 4rem;
+      border-radius: 1rem;
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(92, 184, 92, 0.15) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.25rem;
+      font-size: 1.75rem;
+    }
+
+    .feature-title {
+      font-size: 1.15rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--primary-dark);
+    }
+
+    .feature-desc {
+      color: var(--text-secondary);
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .stats-section {
+      background: white;
+      border-top: 1px solid var(--border-color);
+      border-bottom: 1px solid var(--border-color);
+      padding: 3rem 2rem;
+      margin: 3rem 0;
+    }
+
+    .stats-container {
+      max-width: 1000px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 2rem;
+      text-align: center;
+    }
+
+    .stat-number {
+      font-size: 2.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      color: var(--text-secondary);
+      margin-top: 0.5rem;
+      font-size: 0.95rem;
+    }
+
+    .recommend-section {
+      padding: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .recommend-cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .recommend-card {
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.1) 0%, rgba(240, 173, 78, 0.1) 100%);
+      border: 2px dashed var(--border-color);
+      border-radius: 1rem;
+      padding: 2.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .recommend-card:hover {
+      border-color: var(--primary-color);
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(240, 173, 78, 0.15) 100%);
+    }
+
+    .recommend-card span {
+      font-size: 2.5rem;
+      display: block;
+      margin-bottom: 1rem;
+    }
+
+    .footer {
+      background: white;
+      padding: 2rem;
+      text-align: center;
+      border-top: 1px solid var(--border-color);
+      margin-top: 3rem;
+    }
+
+    .footer-text {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .upload-area {
+      background: var(--card-bg);
+      border: 2px dashed var(--border-color);
+      border-radius: 1rem;
+      padding: 3rem 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      max-width: 600px;
+      margin: 0 auto;
+      box-shadow: var(--shadow);
+    }
+
+    .upload-area:hover, .upload-area.dragover {
+      border-color: var(--primary-color);
+      background: rgba(74, 144, 226, 0.05);
+    }
+
+    .upload-icon {
+      font-size: 3rem;
+      margin-bottom: 1rem;
+      opacity: 0.6;
+    }
+
+    .upload-text {
+      font-size: 1.1rem;
+      margin-bottom: 0.5rem;
+      font-weight: 500;
+    }
+
+    .upload-hint {
+      color: var(--text-secondary);
+      font-size: 0.9rem;
+    }
+
+    .doc-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+
+    .doc-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 1.5rem;
+      transition: all 0.3s ease;
+      box-shadow: var(--shadow);
+    }
+
+    .doc-card:hover {
+      border-color: var(--primary-color);
+    }
+
+    .doc-header {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      margin-bottom: 1rem;
+    }
+
+    .doc-icon {
+      width: 3rem;
+      height: 3rem;
+      border-radius: 0.75rem;
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(240, 173, 78, 0.15) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.25rem;
+    }
+
+    .doc-name {
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+
+    .doc-meta {
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+      margin-bottom: 0.75rem;
+    }
+
+    .doc-summary {
+      color: var(--text-secondary);
+      font-size: 0.87rem;
+      line-height: 1.5;
+      display: -webkit-box;
+      -webkit-line-clamp: 3;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+
+    .chat-container {
+      display: flex;
+      flex-direction: column;
+      height: 500px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 1rem;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .chat-message {
+      max-width: 80%;
+    }
+
+    .chat-message.user {
+      align-self: flex-end;
+    }
+
+    .chat-message.bot {
+      align-self: flex-start;
+    }
+
+    .chat-bubble {
+      background: rgba(74, 144, 226, 0.1);
+      padding: 0.9rem 1.25rem;
+      border-radius: 1rem;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .chat-message.user .chat-bubble {
+      background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%);
+      color: white;
+    }
+
+    .chat-input-area {
+      padding: 1rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      gap: 1rem;
+      background: white;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(74, 144, 226, 0.05);
+      border: 1px solid var(--border-color);
+      border-radius: 0.75rem;
+      padding: 0.85rem 1rem;
+      color: var(--text-primary);
+      font-size: 0.95rem;
+      outline: none;
+      transition: all 0.3s ease;
+    }
+
+    .chat-input:focus {
+      border-color: var(--primary-color);
+      background: white;
+    }
+
+    .role-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    .role-card {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 0.85rem;
+      padding: 1.25rem;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      box-shadow: var(--shadow);
+    }
+
+    .role-card:hover, .role-card.selected {
+      border-color: var(--primary-color);
+      transform: translateY(-3px);
+      background: rgba(74, 144, 226, 0.05);
+    }
+
+    .role-icon {
+      width: 3.5rem;
+      height: 3.5rem;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(74, 144, 226, 0.15) 0%, rgba(240, 173, 78, 0.15) 100%);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 0.75rem;
+      font-size: 1.5rem;
+    }
+
+    .style-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .style-badge {
+      display: inline-block;
+      padding: 0.5rem 1.25rem;
+      border-radius: 9999px;
+      background: rgba(74, 144, 226, 0.1);
+      border: 2px solid var(--border-color);
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-weight: 500;
+    }
+
+    .style-badge:hover, .style-badge.selected {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .tab {
+      padding: 0.6rem 1.25rem;
+      border-radius: 0.5rem;
+      background: rgba(74, 144, 226, 0.08);
+      border: 1px solid var(--border-color);
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .tab:hover, .tab.active {
+      background: var(--primary-color);
+      color: white;
+      border-color: var(--primary-color);
+    }
+
+    .sidebar {
+      background: var(--card-bg);
+      border-radius: 1rem;
+      padding: 1.5rem;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow);
+    }
+
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 2rem;
+    }
+
+    @media (max-width: 768px) {
+      .hero-title {
+        font-size: 2rem;
+      }
+      .nav-links {
+        gap: 0.25rem;
+      }
+      .nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.85rem;
+      }
+      .two-col {
+        grid-template-columns: 1fr;
+      }
+      .page-container {
+        padding: 1.5rem 1rem;
+      }
+    }
+  </style>
+</head>
+<body>
+  <nav class="nav-container">
+    <div class="nav-content">
+      <div class="nav-logo">
+        <span>🏛️</span>
+        <span>文旅智答</span>
+      </div>
+      <div class="nav-links">
+        <button class="nav-link active" onclick="showPage('home', event)">首页</button>
+        <button class="nav-link" onclick="showPage('upload', event)">智能摘要</button>
+        <button class="nav-link" onclick="showPage('knowledge', event)">知识库</button>
+        <button class="nav-link" onclick="showPage('chat', event)">智能问答</button>
+        <button class="nav-link" onclick="showPage('roleplay', event)">角色扮演</button>
+      </div>
+    </div>
+  </nav>
+
+  <div id="home" class="page active">
+    <section class="hero-section">
+      <div class="hero-image">
+        <img src="images/hero.png" alt="文旅智答主视觉图" style="width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem;">
+      </div>
+      <h1 class="hero-title">探索文旅世界</h1>
+      <p class="hero-subtitle">
+        智能解析文档、视频、音频，让文旅知识触手可及。上传你的资料，AI帮你提炼精华。
+      </p>
+      <div class="hero-cta">
+        <button class="btn-primary" onclick="showPage('upload')">开始体验</button>
+        <button class="btn-secondary" onclick="showPage('knowledge')">浏览知识库</button>
+      </div>
+    </section>
+
+    <section class="feature-cards">
+      <div class="feature-card" onclick="showPage('upload')">
+        <div class="feature-icon">📄</div>
+        <h3 class="feature-title">PDF智能摘要</h3>
+        <p class="feature-desc">上传PDF文档，AI自动提取关键信息，生成简明扼要的摘要内容</p>
+      </div>
+      <div class="feature-card" onclick="showPage('upload')">
+        <div class="feature-icon">🎬</div>
+        <h3 class="feature-title">视频内容解析</h3>
+        <p class="feature-desc">上传视频文件，自动提取音频并转录，生成视频内容摘要</p>
+      </div>
+      <div class="feature-card" onclick="showPage('upload')">
+        <div class="feature-icon">🎵</div>
+        <h3 class="feature-title">音频转写服务</h3>
+        <p class="feature-desc">支持多种音频格式，精准语音转文字，生成完整文稿摘要</p>
+      </div>
+      <div class="feature-card" onclick="showPage('chat')">
+        <div class="feature-icon">💬</div>
+        <h3 class="feature-title">智能问答系统</h3>
+        <p class="feature-desc">基于RAG技术的知识库问答，精准匹配相关文档内容</p>
+      </div>
+      <div class="feature-card" onclick="showPage('roleplay')">
+        <div class="feature-icon">👥</div>
+        <h3 class="feature-title">角色扮演对话</h3>
+        <p class="feature-desc">多种角色可选，不同风格回复，沉浸式对话体验</p>
+      </div>
+      <div class="feature-card" onclick="showPage('knowledge')">
+        <div class="feature-icon">🗺️</div>
+        <h3 class="feature-title">文旅知识图谱</h3>
+        <p class="feature-desc">丰富的文旅知识储备，带你探索世界各地的风土人情</p>
+      </div>
+    </section>
+
+    <section class="stats-section">
+      <div class="stats-container">
+        <div class="stat-item">
+          <div class="stat-number">42</div>
+          <div class="stat-label">文档总数</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">38</div>
+          <div class="stat-label">摘要文档</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">156</div>
+          <div class="stat-label">对话轮次</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-number">24/7</div>
+          <div class="stat-label">全天候服务</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="recommend-section">
+      <h2 style="text-align: center; margin-bottom: 1.5rem; font-weight: 700; color: var(--primary-dark);">🔥 热门推荐</h2>
+      <div class="recommend-cards">
+        <div class="recommend-card">
+          <span>🏔️</span>
+          <div style="font-weight: 600; font-size: 1.05rem;">自然风光探索</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">点击了解更多</div>
+        </div>
+        <div class="recommend-card">
+          <span>🏯</span>
+          <div style="font-weight: 600; font-size: 1.05rem;">历史文化之旅</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">点击了解更多</div>
+        </div>
+        <div class="recommend-card">
+          <span>🍜</span>
+          <div style="font-weight: 600; font-size: 1.05rem;">美食探店指南</div>
+          <div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 0.5rem;">点击了解更多</div>
+        </div>
+      </div>
+    </section>
+
+    <footer class="footer">
+      <p class="footer-text">© 2026 文旅智答 - 面向文旅场景的 LangChain 智能对话助手</p>
+    </footer>
+  </div>
+
+  <div id="upload" class="page">
+    <div class="page-container">
+      <div class="page-header">
+        <h1 class="page-title">智能摘要生成</h1>
+        <p class="page-subtitle">上传PDF、视频或音频文件，AI自动生成内容摘要</p>
+      </div>
+
+      <div class="hero-image" style="max-width: 600px; margin: 0 auto 2rem;">
+        <img src="images/upload.png" alt="文件上传区域视觉图" style="width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem;">
+      </div>
+
+      <div class="upload-area" id="uploadArea">
+        <input type="file" id="fileInput" accept=".pdf,.mp4,.avi,.mov,.mkv,.flv,.wmv,.mp3,.wav,.flac,.aac,.ogg" style="display: none;">
+        <div class="upload-icon">📁</div>
+        <div class="upload-text">点击或拖拽文件到此处上传</div>
+        <div class="upload-hint">支持 PDF、MP4、AVI、MOV、MP3、WAV 等格式</div>
+      </div>
+
+      <div style="text-align: center; margin-top: 1.5rem;">
+        <button class="btn-primary" onclick="generateSummary()">生成摘要</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="knowledge" class="page">
+    <div class="page-container">
+      <div class="page-header">
+        <h1 class="page-title">知识库管理</h1>
+        <p class="page-subtitle">查看和管理已上传的文档及其摘要内容</p>
+      </div>
+
+      <div class="hero-image" style="max-width: 800px; margin: 0 auto 2rem;">
+        <img src="images/knowledge.png" alt="知识库概览视觉图" style="width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem;">
+      </div>
+
+      <div class="tabs">
+        <button class="tab active">全部</button>
+        <button class="tab">PDF</button>
+        <button class="tab">视频</button>
+        <button class="tab">音频</button>
+      </div>
+
+      <div class="doc-list">
+        <div class="doc-card">
+          <div class="doc-header">
+            <div class="doc-icon">📄</div>
+            <div>
+              <div class="doc-name">文旅行业发展报告.pdf</div>
+              <div class="doc-meta">PDF · 2.4 MB</div>
+            </div>
+          </div>
+          <div class="doc-summary">
+            本报告详细分析了文旅行业的发展现状、趋势及未来展望，涵盖政策、市场、技术等多个维度。
+          </div>
+        </div>
+        <div class="doc-card">
+          <div class="doc-header">
+            <div class="doc-icon">🎬</div>
+            <div>
+              <div class="doc-name">古镇旅游宣传片.mp4</div>
+              <div class="doc-meta">视频 · 156 MB</div>
+            </div>
+          </div>
+          <div class="doc-summary">
+            展示了江南古镇的美丽风光和人文历史，介绍了当地的传统工艺和美食文化。
+          </div>
+        </div>
+        <div class="doc-card">
+          <div class="doc-header">
+            <div class="doc-icon">🎵</div>
+            <div>
+              <div class="doc-name">导游讲解录音.mp3</div>
+              <div class="doc-meta">音频 · 45 MB</div>
+            </div>
+          </div>
+          <div class="doc-summary">
+            专业导游对历史古迹的详细讲解，包含丰富的历史典故和文化背景介绍。
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="chat" class="page">
+    <div class="page-container">
+      <div class="page-header">
+        <h1 class="page-title">智能问答</h1>
+        <p class="page-subtitle">基于知识库的智能问答系统，选择文档进行精准问答</p>
+      </div>
+
+      <div class="two-col">
+        <div class="chat-container">
+          <div class="chat-messages" id="chat-messages">
+            <div class="chat-message bot">
+              <div class="chat-bubble">你好！我是你的智能助手。请先选择文档，然后提问~</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="chat-input" class="chat-input" placeholder="输入你的问题..." onkeypress="if(event.key === 'Enter') sendChatMessage('chat')">
+            <button class="btn-primary" onclick="sendChatMessage('chat')">发送</button>
+          </div>
+        </div>
+
+        <div class="sidebar">
+          <h3 style="font-weight: 600; margin-bottom: 1rem;">📄 选择文档</h3>
+          <div style="display: flex; flex-direction: column; gap: 0.5rem;" id="document-checkboxes">
+            <div style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem;">
+              加载中...
+            </div>
+          </div>
+          <button class="btn-secondary" style="width: 100%; margin-top: 1rem; padding: 0.6rem;" onclick="toggleSelectAllDocs()">
+            全选/取消全选
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="roleplay" class="page">
+    <div class="page-container">
+      <div class="page-header">
+        <h1 class="page-title">角色扮演助手</h1>
+        <p class="page-subtitle">选择不同角色和风格，体验沉浸式对话</p>
+      </div>
+
+      <div class="hero-image" style="max-width: 600px; margin: 0 auto 2rem;">
+        <img src="images/roleplay.png" alt="角色扮演界面视觉图" style="width: 100%; height: 100%; object-fit: cover; border-radius: 1.5rem;">
+      </div>
+
+      <div class="two-col">
+        <div class="chat-container">
+          <div class="chat-messages" id="roleplay-messages">
+            <div class="chat-message bot">
+              <div class="chat-bubble">请先选择一个角色开始对话吧！</div>
+            </div>
+          </div>
+          <div class="chat-input-area">
+            <input type="text" id="roleplay-input" class="chat-input" placeholder="输入你的问题..." onkeypress="if(event.key === 'Enter') sendChatMessage('roleplay')">
+            <button class="btn-primary" onclick="sendChatMessage('roleplay')">发送</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="sidebar">
+            <h3 style="font-weight: 600; margin-bottom: 1rem;">👤 选择角色</h3>
+            <div class="role-grid">
+              <div class="role-card selected">
+                <div class="role-icon">📍</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">导游</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">专业旅游向导</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">📖</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">历史学家</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">精通历史文化</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">🍜</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">美食家</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">地道美食推荐</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">👥</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">本地居民</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">本地人视角</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">📷</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">摄影师</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">摄影技巧分享</div>
+              </div>
+              <div class="role-card">
+                <div class="role-icon">🧭</div>
+                <div style="font-weight: 600; font-size: 0.95rem;">探险家</div>
+                <div style="font-size: 0.8rem; color: var(--text-secondary);">户外攻略达人</div>
+              </div>
+            </div>
+
+            <h3 style="font-weight: 600; margin-bottom: 1rem; margin-top: 1.5rem;">🎨 说话风格</h3>
+            <div class="style-badges">
+              <span class="style-badge selected">标准</span>
+              <span class="style-badge">老年友好</span>
+              <span class="style-badge">儿童友好</span>
+              <span class="style-badge">网络热梗</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = 'http://localhost:8000/api';
+    
+    function showPage(pageId, event) {
+      document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+      document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+      
+      document.getElementById(pageId).classList.add('active');
+      if (event && event.target) {
+        event.target.classList.add('active');
+      }
+      
+      console.log(`切换到页面: ${pageId}`);
+      
+      if (pageId === 'knowledge') {
+        loadDocuments();
+      }
+      if (pageId === 'chat') {
+        loadDocumentCheckboxes();
+      }
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('页面加载完成，开始初始化...');
+      loadDocumentCheckboxes();
+      loadDocuments();
+    });
+
+    async function loadDocuments() {
+      try {
+        const response = await fetch(`${API_BASE}/knowledge-base/documents`);
+        if (!response.ok) throw new Error('获取文档失败');
+        
+        const docs = await response.json();
+        const docList = document.querySelector('.doc-list');
+        if (!docList) return;
+        
+        docList.innerHTML = docs.map(doc => `
+          <div class="doc-card">
+            <div class="doc-header">
+              <div class="doc-icon">📄</div>
+              <div>
+                <div class="doc-name">${doc.filename}</div>
+                <div class="doc-meta">摘要 · ${doc.size} 字符</div>
+              </div>
+            </div>
+            <div class="doc-summary">${doc.summary}</div>
+          </div>
+        `).join('');
+      } catch (error) {
+        console.error('加载文档失败:', error);
+      }
+    }
+
+    async function loadDocumentCheckboxes() {
+      console.log('开始加载文档列表...');
+      const container = document.getElementById('document-checkboxes');
+      if (!container) {
+        console.error('未找到document-checkboxes容器');
+        return;
+      }
+      
+      try {
+        console.log(`正在请求: ${API_BASE}/knowledge-base/documents`);
+        const response = await fetch(`${API_BASE}/knowledge-base/documents`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log(`响应状态: ${response.status}`);
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`获取文档失败: ${response.status} - ${errorText}`);
+        }
+        
+        const docs = await response.json();
+        console.log(`成功加载 ${docs.length} 个文档`);
+        console.log('文档列表:', docs);
+        
+        if (docs.length === 0) {
+          container.innerHTML = `<div style="color: var(--text-secondary); font-size: 0.85rem; text-align: center; padding: 1rem;">暂无文档，请先上传文件生成摘要</div>`;
+          return;
+        }
+        
+        container.innerHTML = docs.map(doc => `
+          <label style="padding: 0.75rem; border: 1px solid var(--border-color); border-radius: 0.5rem; cursor: pointer; display: flex; gap: 0.5rem; align-items: center; transition: all 0.2s;">
+            <input type="checkbox" checked data-doc-id="${doc.id}">
+            <span>${getFileIcon(doc.filename)}</span>
+            <span style="font-size: 0.9rem; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${doc.filename}</span>
+          </label>
+        `).join('');
+        
+        container.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+          cb.addEventListener('change', function() {
+            const label = this.parentElement;
+            if (this.checked) {
+              label.style.borderColor = 'var(--primary-color)';
+              label.style.background = 'rgba(74, 144, 226, 0.05)';
+            } else {
+              label.style.borderColor = 'var(--border-color)';
+              label.style.background = 'transparent';
+            }
+          });
+          
+          if (cb.checked) {
+            cb.parentElement.style.borderColor = 'var(--primary-color)';
+            cb.parentElement.style.background = 'rgba(74, 144, 226, 0.05)';
+          }
+        });
+      } catch (error) {
+        console.error('加载文档复选框失败:', error);
+        container.innerHTML = `<div style="color: #E74C3C; font-size: 0.85rem; text-align: center; padding: 1rem;">加载失败: ${error.message}</div>`;
+      }
+    }
+
+    function getFileIcon(filename) {
+      const ext = filename.split('.').pop().toLowerCase();
+      if (ext === 'pdf') return '📄';
+      if (['mp4', 'avi', 'mov', 'mkv', 'flv', 'wmv'].includes(ext)) return '🎬';
+      if (['mp3', 'wav', 'flac', 'aac', 'ogg'].includes(ext)) return '🎵';
+      return '📄';
+    }
+
+    function toggleSelectAllDocs() {
+      const checkboxes = document.querySelectorAll('#document-checkboxes input[type="checkbox"]');
+      const allChecked = Array.from(checkboxes).every(cb => cb.checked);
+      checkboxes.forEach(cb => {
+        cb.checked = !allChecked;
+        const label = cb.parentElement;
+        if (cb.checked) {
+          label.style.borderColor = 'var(--primary-color)';
+          label.style.background = 'rgba(74, 144, 226, 0.05)';
+        } else {
+          label.style.borderColor = 'var(--border-color)';
+          label.style.background = 'transparent';
+        }
+      });
+    }
+
+    const uploadArea = document.getElementById('uploadArea');
+    const fileInput = document.getElementById('fileInput');
+    let selectedFile = null;
+
+    if (uploadArea) {
+      uploadArea.addEventListener('click', () => fileInput.click());
+      
+      uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('dragover');
+      });
+      
+      uploadArea.addEventListener('dragleave', () => {
+        uploadArea.classList.remove('dragover');
+      });
+      
+      uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('dragover');
+        const file = e.dataTransfer.files?.[0];
+        if (file) {
+          selectedFile = file;
+          updateUploadText(file.name);
+        }
+      });
+      
+      fileInput.addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (file) {
+          selectedFile = file;
+          updateUploadText(file.name);
+        }
+      });
+    }
+
+    function updateUploadText(filename) {
+      const uploadText = document.querySelector('.upload-text');
+      if (uploadText) {
+        uploadText.innerHTML = `<span style="display: flex; align-items: center; gap: 0.75rem;">📁 ${filename}</span>`;
+      }
+    }
+
+    window.generateSummary = async function() {
+      if (!selectedFile) {
+        alert('请先选择一个文件');
+        return;
+      }
+
+      const button = event.target;
+      const originalText = button.textContent;
+      button.textContent = '处理中...';
+      button.disabled = true;
+
+      try {
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        const response = await fetch(`${API_BASE}/upload`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          throw new Error(error.detail || '上传失败');
+        }
+
+        const result = await response.json();
+        
+        const resultDiv = document.createElement('div');
+        resultDiv.className = 'success-message';
+        resultDiv.innerHTML = `
+          <div style="display: flex; align-items: flex-start; gap: 0.75rem;">
+            <span>✅</span>
+            <div>
+              <div style="font-weight: 600; margin-bottom: 0.5rem;">文件 "${result.filename}" 处理成功！</div>
+              <div style="padding-top: 0.5rem; border-top: 1px solid rgba(255,255,255,0.1);">
+                <div style="font-weight: 600; margin-bottom: 0.5rem;">📝 内容摘要</div>
+                <div style="font-size: 0.875rem; line-height: 1.6; white-space: pre-wrap;">${result.summary}</div>
+              </div>
+            </div>
+          </div>
+        `;
+
+        const uploadContainer = document.querySelector('.page-container');
+        if (uploadContainer) {
+          uploadContainer.appendChild(resultDiv);
+        }
+
+        selectedFile = null;
+        const uploadText = document.querySelector('.upload-text');
+        if (uploadText) {
+          uploadText.textContent = '点击或拖拽文件到此处上传';
+        }
+
+      } catch (error) {
+        alert('处理失败: ' + error.message);
+      } finally {
+        button.textContent = originalText;
+        button.disabled = false;
+      }
+    };
+
+    window.sendChatMessage = async function(pageType) {
+      const input = document.querySelector(`#${pageType}-input`);
+      if (!input || !input.value.trim()) return;
+
+      const messagesContainer = document.querySelector(`#${pageType}-messages`);
+      if (!messagesContainer) return;
+
+      const userMessage = input.value;
+      input.value = '';
+
+      messagesContainer.innerHTML += `
+        <div class="chat-message user">
+          <div class="chat-bubble">${userMessage}</div>
+        </div>
+      `;
+
+      messagesContainer.innerHTML += `
+        <div class="chat-message bot">
+          <div class="chat-bubble">
+            <div style="display: flex; justify-content: center; align-items: center;">
+              <div style="width: 1.5rem; height: 1.5rem; border: 2px solid rgba(74, 144, 226, 0.3); border-top-color: var(--primary-color); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+            </div>
+          </div>
+        </div>
+      `;
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+
+      try {
+        let selectedDocIds = [];
+        let role = '';
+        let style = '';
+
+        if (pageType === 'chat') {
+          const checkboxes = document.querySelectorAll('#document-checkboxes input[type="checkbox"]');
+          checkboxes.forEach(cb => {
+            if (cb.checked) {
+              const docId = cb.getAttribute('data-doc-id');
+              if (docId) selectedDocIds.push(docId);
+            }
+          });
+        }
+
+        if (pageType === 'roleplay') {
+          const selectedRoleCard = document.querySelector('.role-card.selected');
+          if (selectedRoleCard) {
+            const roleName = selectedRoleCard.querySelector('div:nth-child(2)')?.textContent || '';
+            role = getRoleKey(roleName);
+          }
+          
+          const selectedStyleBadge = document.querySelector('.style-badge.selected');
+          if (selectedStyleBadge) {
+            const styleName = selectedStyleBadge.textContent || '';
+            style = getStyleKey(styleName);
+          }
+        }
+
+        const response = await fetch(`${API_BASE}/chat`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: userMessage,
+            document_ids: selectedDocIds,
+            role,
+            style
+          })
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.detail || '请求失败');
+        }
+
+        const result = await response.json();
+
+        messagesContainer.removeChild(messagesContainer.lastChild);
+        messagesContainer.innerHTML += `
+          <div class="chat-message bot">
+            <div class="chat-bubble">${result.response}</div>
+          </div>
+        `;
+
+      } catch (error) {
+        messagesContainer.removeChild(messagesContainer.lastChild);
+        messagesContainer.innerHTML += `
+          <div class="chat-message bot">
+            <div class="chat-bubble" style="color: #E74C3C;">抱歉，处理失败: ${error.message}</div>
+          </div>
+        `;
+      }
+
+      messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    };
+
+    function getRoleKey(roleName) {
+      const roleMap = {
+        '导游': 'tour_guide',
+        '历史学家': 'historian',
+        '美食家': 'foodie',
+        '本地居民': 'local_resident',
+        '摄影师': 'photographer',
+        '探险家': 'adventurer',
+        '热情导游': 'tour_guide',
+        '历史学者': 'historian',
+        '美食达人': 'foodie',
+        '本地土著': 'local_resident'
+      };
+      return roleMap[roleName] || '';
+    }
+
+    function getStyleKey(styleName) {
+      const styleMap = {
+        '标准': 'normal',
+        '标准风格': 'normal',
+        '老年友好': 'elderly',
+        '儿童友好': 'kids',
+        '小朋友风格': 'kids',
+        '网络热梗': 'meme',
+        '玩梗达人': 'meme'
+      };
+      return styleMap[styleName] || '';
+    }
+
+    document.querySelectorAll('.role-card').forEach(card => {
+      card.addEventListener('click', function() {
+        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+        this.classList.add('selected');
+      });
+    });
+
+    document.querySelectorAll('.style-badge').forEach(badge => {
+      badge.addEventListener('click', function() {
+        document.querySelectorAll('.style-badge').forEach(b => b.classList.remove('selected'));
+        this.classList.add('selected');
+      });
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', function() {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        this.classList.add('active');
+      });
+    });
+
+    document.addEventListener('DOMContentLoaded', () => {
+      loadDocuments();
+    });
+  </script>
+</body>
+</html>
