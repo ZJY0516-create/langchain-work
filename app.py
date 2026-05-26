@@ -12,11 +12,11 @@ from datetime import datetime
 from typing import List, Dict, Any
 
 # 配置
-DEESEEK_API_KEY = st.secrets.get("DEESEEK_API_KEY", "")
-DEESEEK_BASE_URL = st.secrets.get("DEESEEK_BASE_URL", "https://api.deepseek.com/v1")
-DEESEEK_MODEL = st.secrets.get("DEESEEK_MODEL", "deepseek-chat")
-TEMPERATURE = float(st.secrets.get("TEMPERATURE", "0.7"))
-MAX_TOKENS = int(st.secrets.get("MAX_TOKENS", "4096"))
+DEESEEK_API_KEY = "sk-ec718a2e5be24ed3ad3f568f36ea409e"
+DEESEEK_BASE_URL = "https://api.deepseek.com/v1"
+DEESEEK_MODEL = "deepseek-chat"
+TEMPERATURE = 0.7
+MAX_TOKENS = 4096
 
 # 数据目录
 DATA_DIR = "data"
@@ -137,6 +137,68 @@ def extract_text_from_pdf(file_bytes):
     except Exception as e:
         raise Exception(f"PDF解析失败: {e}")
 
+def extract_audio_from_video(file_bytes, filename):
+    """从视频提取音频"""
+    try:
+        import tempfile
+        from moviepy.editor import VideoFileClip
+        
+        with tempfile.NamedTemporaryFile(suffix=".mp4", delete=False) as temp_video:
+            temp_video.write(file_bytes.read())
+            temp_video_path = temp_video.name
+        
+        video = VideoFileClip(temp_video_path)
+        audio = video.audio
+        
+        with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_audio:
+            temp_audio_path = temp_audio.name
+        
+        audio.write_audiofile(temp_audio_path)
+        video.close()
+        
+        import os
+        os.unlink(temp_video_path)
+        
+        return temp_audio_path
+    
+    except Exception as e:
+        raise Exception(f"视频处理失败: {e}")
+
+def speech_to_text(audio_path):
+    """语音转文字"""
+    try:
+        import requests
+        
+        headers = {
+            "Authorization": f"Bearer {DEESEEK_API_KEY}"
+        }
+        
+        with open(audio_path, "rb") as f:
+            files = {"file": f}
+            data = {"model": "deepseek-audio"}
+            
+            response = requests.post(
+                f"{DEESEEK_BASE_URL}/audio/transcriptions",
+                headers=headers,
+                files=files,
+                data=data,
+                timeout=120
+            )
+        
+        import os
+        os.unlink(audio_path)
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result.get("text", "")
+        else:
+            raise Exception(f"语音转文字失败: {response.status_code}")
+    
+    except Exception as e:
+        if 'audio_path' in locals() and os.path.exists(audio_path):
+            os.unlink(audio_path)
+        raise Exception(f"语音转文字失败: {e}")
+
 def create_summary(text: str) -> str:
     """生成文档摘要"""
     if len(text) <= 1000:
@@ -193,10 +255,24 @@ def call_llm(prompt: str) -> str:
         if response.status_code == 200:
             result = response.json()
             return result['choices'][0]['message']['content']
+        elif response.status_code == 401:
+            return "❌ API密钥无效或已过期，请检查DEESEEK_API_KEY配置"
+        elif response.status_code == 403:
+            return "❌ 权限不足，请检查API密钥权限"
+        elif response.status_code == 429:
+            return "❌ 请求过于频繁，请稍后再试"
         else:
-            return f"API调用失败: {response.status_code}"
+            try:
+                error_detail = response.json().get('error', {}).get('message', '')
+                return f"❌ API调用失败 ({response.status_code}): {error_detail}"
+            except:
+                return f"❌ API调用失败: {response.status_code}"
+    except requests.exceptions.ConnectionError:
+        return "❌ 网络连接失败，请检查网络或稍后重试"
+    except requests.exceptions.Timeout:
+        return "❌ 请求超时，请稍后重试"
     except Exception as e:
-        return f"连接失败: {str(e)}"
+        return f"❌ 连接失败: {str(e)}"
 
 def answer_with_rag(question: str, context: str = "", role_key: str = "", style_key: str = "") -> str:
     """基于RAG回答问题"""
@@ -239,18 +315,26 @@ def upload_file(file):
     """上传文件并生成摘要"""
     try:
         file_ext = file.name.split('.')[-1].lower()
+        text = ""
         
         if file_ext == 'pdf':
-            text = extract_text_from_pdf(file)
+            with st.spinner("正在解析PDF..."):
+                text = extract_text_from_pdf(file)
+        elif file_ext in ['mp4', 'mov', 'avi', 'mkv', 'webm']:
+            with st.spinner("正在提取音频..."):
+                audio_path = extract_audio_from_video(file, file.name)
+            with st.spinner("正在转写文字..."):
+                text = speech_to_text(audio_path)
         else:
-            st.error("不支持的文件格式，仅支持PDF")
+            st.error(f"不支持的文件格式: {file_ext}，支持PDF、MP4、MOV、AVI、MKV、WEBM")
             return
         
         if not text.strip():
             st.error("未提取到内容")
             return
         
-        summary = create_summary(text)
+        with st.spinner("正在生成摘要..."):
+            summary = create_summary(text)
         
         doc = {
             "id": str(uuid.uuid4()),
@@ -258,7 +342,7 @@ def upload_file(file):
             "source": file.name,
             "type": "summary",
             "created_at": datetime.now().isoformat(),
-            "metadata": {"original_length": len(text), "summary_length": len(summary)}
+            "metadata": {"original_length": len(text), "summary_length": len(summary), "file_type": file_ext}
         }
         
         save_document(doc)
@@ -322,7 +406,7 @@ def main():
         
         # 文件上传
         st.subheader("上传文档")
-        uploaded_file = st.file_uploader("选择PDF文件", type=["pdf"])
+        uploaded_file = st.file_uploader("选择文件 (支持PDF、视频)", type=["pdf", "mp4", "mov", "avi", "mkv", "webm"])
         if uploaded_file:
             upload_file(uploaded_file)
         
